@@ -1,0 +1,174 @@
+local function log(msg)
+  freeswitch.consoleLog("INFO", "[ROUTER] " .. msg .. "\n")
+end
+
+
+
+-- Simple JSON escape
+local function json_escape(str)
+  if not str then return "" end
+  str = tostring(str)
+  str = str:gsub("\\", "\\\\")
+  str = str:gsub("\"", "\\\"")
+  str = str:gsub("\n", "\\n")
+  str = str:gsub("\r", "\\r")
+  str = str:gsub("\t", "\\t")
+  return str
+end
+
+-- HTTP POST JSON using FreeSWITCH curl app
+local function http_post_json(url, json_body)
+  -- curl syntax: curl <url> <post-data> <headers>
+  -- We add headers like:
+  -- content-type: application/json
+  local headers = "content-type:application/json"
+
+  local api = freeswitch.API()
+  local cmd = string.format(
+    "%s post '%s' %s",
+    url,
+    json_escape(json_body),
+    headers
+  )
+
+  log("Calling API via curl: " .. url)
+  local res = api:execute("curl", cmd)
+  return res
+end
+
+-- ----------------------------
+-- Hangup Hook
+-- ----------------------------
+function on_hangup_hook(session, what, arg)
+  local uuid        = session:get_uuid()
+  local hangupCause = session:getVariable("hangup_cause") or ""
+  local dispo       = session:getVariable("originate_disposition") or ""
+
+  local billsec     = tonumber(session:getVariable("billsec") or "0") or 0
+  local duration    = tonumber(session:getVariable("duration") or "0") or 0
+  local progresssec = tonumber(session:getVariable("progresssec") or "0") or 0
+
+  local start_epoch  = session:getVariable("start_epoch") or ""
+  local answer_epoch = session:getVariable("answer_epoch") or ""
+  local end_epoch    = session:getVariable("end_epoch") or ""
+
+  
+  local destination_number = session:getVariable("destination_number")
+
+ 
+  local user_id = tonumber(session:getVariable("sip_h_X-USER-ID") or "0") or 0
+
+  -- status mapping
+  local status = "completed"
+  if hangupCause == "NO_ANSWER" or dispo == "NO_ANSWER" then
+    status = "no_answer"
+  elseif hangupCause == "ORIGINATOR_CANCEL" then
+    status = "failed"
+  elseif hangupCause == "NORMAL_CLEARING" then
+    status = "completed"
+  elseif hangupCause ~= "" and hangupCause ~= "NORMAL_CLEARING" then
+    status = "failed"
+  end
+
+  log(
+    "\n[CALL-END] uuid="..uuid..
+    "\n  direction=outbound"..
+    "\n  user_id="..tostring(user_id)..
+    "\n  destination_number="..tostring(destination_number)..
+    "\n  cause="..hangupCause..
+    "\n  dispo="..dispo..
+    "\n  duration="..duration.."s"..
+    "\n  billsec="..billsec.."s"..
+    "\n  progresssec="..progresssec.."s"..
+    "\n  start_epoch="..start_epoch..
+    "\n  answer_epoch="..answer_epoch..
+    "\n  end_epoch="..end_epoch..
+    "\n"
+  )
+
+  -- API call
+  local base_url = "https://control.zedsms.com"
+  local url = base_url .. "/api/calls/complete"
+
+  local json_body = string.format([[
+{
+  "user_id": %d,
+  "call_uuid": "%s",
+  "destination_number": "%s",
+  "direction": "outbound",
+  "billsec": %d,
+  "status": "%s"
+}]],
+    user_id,
+    json_escape(uuid),
+    json_escape(destination_number),
+    billsec,
+    json_escape(status)
+  )
+
+  log("POST Body: " .. json_body)
+
+  local resp = http_post_json(url, json_body)
+  log("API Response: " .. tostring(resp))
+end
+
+
+
+
+if not session then
+  log("No session object (must be run from dialplan, not luarun)")
+  return
+end
+
+session:setHangupHook("on_hangup_hook")
+
+local base_url = "https://control.zedsms.com"
+local dest = session:getVariable("destination_number") or ""
+local caller = session:getVariable("caller_id_number") or ""
+local username = session:getVariable("sip_h_X-USER-ID") or ""
+local caller_id    = session:getVariable("sip_h_X-CLOUD-NUMBER") or ""
+local sip_call_id = session:getVariable("sip_call_id")
+
+log("Username : " .. username .. " and call-id : " .. caller_id .. "and call-id : " .. sip_call_id)
+log("Incoming call -> caller=" .. caller .. " dest=" .. dest)
+
+
+
+
+
+
+
+
+
+local bridge_str = "user/" .. dest
+log("➡️ Bridging to: " .. bridge_str)
+
+
+session:execute("bridge", bridge_str)
+
+-- After bridge returns, call is usually ended OR failed.
+-- Lets detect what happened
+local disposition = session:getVariable("originate_disposition") or ""
+local cause = session:getVariable("hangup_cause") or "UNKNOWN"
+
+log("Bridge finished -> originate_disposition=" .. disposition .. " | hangup_cause=" .. cause)
+
+-- Reject/Busy/NoAnswer detection
+-- originate_disposition values can be: SUCCESS, NO_ANSWER, USER_BUSY, CALL_REJECTED, INVALID_NUMBER, etc.
+if disposition == "SUCCESS" then
+  log("✅ Call bridged successfully")
+elseif disposition == "NO_ANSWER" then
+  log("⏳ No Answer")
+elseif disposition == "USER_BUSY" then
+  log("📵 Busy")
+elseif disposition == "CALL_REJECTED" then
+  log("❌ Rejected")
+else
+  log("⚠️ Bridge failed / ended: " .. disposition)
+end
+
+-- Ensure hangup
+if session:ready() then
+  session:hangup()
+end
+

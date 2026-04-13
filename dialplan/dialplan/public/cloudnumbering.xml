@@ -1,0 +1,17 @@
+<extension name="cloudnumbering_out">
+  <condition field="destination_number" expression="^\+([1-9]\d+)$">
+    
+    <!-- CLI in E164 -->
+    <action application="set" data="effective_caller_id_number=+447360063337"/>
+
+    <!-- Force codecs -->
+    <action application="set" data="absolute_codec_string=PCMA,PCMU"/>
+
+    <!-- DTMF -->
+    <action application="set" data="dtmf_type=rfc2833"/>
+
+    <action application="bridge"
+      data="sofia/gateway/cloudnumbering/${destination_number}"/>
+
+  </condition>
+</extension>

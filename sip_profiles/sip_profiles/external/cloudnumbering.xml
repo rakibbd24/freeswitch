@@ -1,0 +1,19 @@
+<gateway name="cloudnumbering">
+
+  <param name="proxy" value="sip.cloudnumbering.com"/>
+  <param name="realm" value="sip.cloudnumbering.com"/>
+  <param name="register" value="false"/>
+
+  <!-- Codec -->
+  <param name="codec-prefs" value="PCMA"/>
+
+  <!-- Caller ID -->
+  <param name="caller-id-in-from" value="true"/>
+  <param name="sip-cid-type" value="pid"/>
+  <param name="from-domain" value="sip.cloudnumbering.com"/>
+
+  <!-- Transport -->
+  <param name="transport" value="udp"/>
+
+</gateway>
+

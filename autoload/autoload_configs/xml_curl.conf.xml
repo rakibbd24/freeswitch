@@ -1,0 +1,28 @@
+<configuration name="xml_curl.conf" description="XML Fetch Handler">
+  <bindings>
+
+    <binding name="directory">
+
+      <!-- DYNAMIC DIRECTORY + AUTH VIA API -->
+      <param name="gateway-url" value="https://control.zedsms.com/api/freeswitch/directory?auth_token=FAFMGTC-5E245D6-QVHVSWR-F7TQPMS"/>
+
+      <param name="method" value="POST"/>
+
+      <!-- send both FS params + POST values -->
+      <param name="bind-params" value="both"/>
+      <param name="enable-post-params" value="true"/>
+
+      <!-- reliability -->
+      <param name="timeout" value="10"/>
+      <param name="retry" value="3"/>
+
+      <!-- ignore dev SSL issues -->
+      <param name="ssl-verify-peer" value="false"/>
+      <param name="ssl-verify-host" value="false"/>
+
+      <param name="debug" value="true"/>
+
+    </binding>
+
+  </bindings>
+</configuration>

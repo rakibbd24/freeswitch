@@ -1,0 +1,20 @@
+<context name="cloudnumbering">
+
+  <extension name="cloud_test">
+    <condition field="destination_number" expression="^.+$">
+      <action application="log" data="INFO CLOUD INBOUND CALL ANSWERED"/>
+      <action application="log" data="INFO ===== INBOUND CALL START ====="/>
+      <action application="log" data="INFO Destination Number  : ${destination_number}"/>
+      <action application="log" data="INFO Caller Number       : ${caller_id_number}"/>
+      <action application="log" data="INFO Caller Name         : ${caller_id_name}"/>
+      
+      <!-- IMPORTANT: inbound ko answered feel na ho -->
+      <action application="set" data="ringback=${us-ring}"/>
+      <action application="set" data="call_timeout=30"/>
+      <!--<action application="playback" data="/etc/freeswitch/sounds/myaudio_fs.wav"/>-->
+      <!--<action application="bridge" data="sofia/internal/sip:1000@152.59.87.43:59668"/>-->
+      <action application="lua" data="inbound_mananger.lua"/>
+    </condition>
+  </extension>
+
+</context>

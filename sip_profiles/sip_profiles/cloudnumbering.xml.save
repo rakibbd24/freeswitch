@@ -1,0 +1,32 @@
+<profile name="cloudnumbering">
+  <settings>
+
+    <!-- SIP LISTEN -->
+    <param name="sip-ip" value="$${local_ip_v4}"/>
+    <param name="sip-port" value="6070"/>
+
+    <!-- RTP -->
+    <param name="rtp-ip" value="$${local_ip_v4}"/>
+    <param name="rtp-timeout-sec" value="300"/>
+
+    <!-- CONTEXT -->
+    <param name="context" value="cloudnumbering"/>
+
+    <!-- AUTH / SECURITY -->
+    <param name="auth-calls" value="false"/>
+    <param name="apply-inbound-acl" value="cloudnumbering"/>
+
+    <!-- SIP BEHAVIOR -->
+    <param name="inbound-codec-prefs" value="PCMA,PCMU"/>
+    <param name="outbound-codec-prefs" value="PCMA,PCMU"/>
+    <param name="disable-transcoding" value="true"/>
+
+    <!-- NAT -->
+    <param name="ext-rtp-ip" value="auto-nat"/>
+    <param name="ext-sip-ip" value="auto-nat"/>
+
+    <!-- LOGGING -->
+    <param name="log-auth-failures" value="true"/>
+
+  </settings>
+</profile>

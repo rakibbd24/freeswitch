@@ -1,0 +1,8 @@
+<include>
+    <gateway name="webrtc_gateway">
+        <param name="username" value="webrtc_user"/>
+        <param name="password" value="password"/>
+        <param name="realm" value="sip.zedsms.com"/>
+        <param name="register" value="false"/>
+    </gateway>
+</include>
